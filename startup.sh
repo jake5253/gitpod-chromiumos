@@ -6,7 +6,7 @@ for conf in 'user.name' 'user.email';
   local REPLY
   [[ "" == $(git config --global --get $conf) ]] && {
   while ($REPLY == ""); do 
-    read -p 'WARNING! MISSING VALUE: git config $conf. Please enter value for $conf: " REPLY
+    read -p "WARNING! MISSING VALUE: git config $conf. Please enter value for $conf: " REPLY
   done
   git config --global $conf "$REPLY"
   }
