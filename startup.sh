@@ -3,12 +3,11 @@ SOURCE_DIR=/workspace/chromiumos
 echo "Checking environment"
 for conf in 'user.name' 'user.email';
   do 
-  local REPLY
+  REPLY
   [[ "" == $(git config --global --get $conf) ]] && {
-  while ($REPLY == ""); do 
-    read -p "WARNING! MISSING VALUE: git config $conf. Please enter value for $conf: " REPLY
+  while read -p "WARNING! MISSING VALUE: git config $conf. Please enter value for $conf: " REPLY; do 
+    [[ $REPLY == "" ]] && continue || { git config --global $conf "$REPLY"; break; }
   done
-  git config --global $conf "$REPLY"
   }
 done
 
