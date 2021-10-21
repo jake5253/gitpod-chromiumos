@@ -10,4 +10,4 @@ tasks:
     pyenv global 3.9.7 &&
     repo init -u https://chromium.googlesource.com/chromiumos/manifest.git --submodules --depth=1 -b stable -g minilayout && 
     repo sync -j$(nproc) &&
-    cros_sdk
+    cros_sdk --no-ns-pid --no-ns-net --nouse-image
