@@ -1,75 +1,41 @@
-FROM ubuntu:bionic
+FROM gitpod/workspace-full-vnc:latest
 
-COPY install-packages /usr/bin
+USER root
 
-### base ###
-ARG DEBIAN_FRONTEND=noninteractive
-
-RUN yes | unminimize \
-    && install-packages \
-        zip \
-        unzip \
-        bash-completion \
-        build-essential \
-        ninja-build \
-        htop \
-        jq \
-        less \
-        locales \
-        man-db \
-        nano \
-        ripgrep \
-        software-properties-common \
-        sudo \
-        time \
-        emacs-nox \
-        vim \
-        multitail \
-        lsof \
-        ssl-cert \
-        fish \
-        zsh \
-        subversion \
-        curl \
-        lvm2 \
-        thin-provisioning-tools \
-        python3.9 \
-        python-pkg-resources \
-        python-virtualenv \
-        python-oauth2client
-    && locale-gen en_US.UTF-8
+# Install Chromium build dependencies
+RUN apt update \
+  && apt install --yes --no-install-recommends \
+    git \
+    xz-utils \
+    python3-pkg-resources \
+    python3-virtualenv \
+    python3-oauth2client\
+    locales \
+    software-properties-common \
+    lvm2 \
+    thin-provisioning-tools \
+  && locale-gen en_US.UTF-8 \
+  && rm -rf /var/lib/apt/lists/*
 
 ENV LANG=en_US.UTF-8
 
-### Git ###
-RUN add-apt-repository -y ppa:git-core/ppa \
-    && install-packages git git-lfs
-
-### Gitpod user ###
-# '-l': see https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#user
-RUN useradd -l -u 33333 -G sudo -md /home/gitpod -s /bin/bash -p gitpod gitpod \
-    # passwordless sudo for users in the 'sudo' group
-    && sed -i.bkp -e 's/%sudo\s\+ALL=(ALL\(:ALL\)\?)\s\+ALL/%sudo ALL=NOPASSWD:ALL/g' /etc/sudoers
-ENV HOME=/home/gitpod
-WORKDIR $HOME
-# custom Bash prompt
-RUN { echo && echo "PS1='\[\033[01;32m\]\u\[\033[00m\] \[\033[01;34m\]\w\[\033[00m\]\$(__git_ps1 \" (%s)\") $ '" ; } >> .bashrc
-
-### Gitpod user (2) ###
 USER gitpod
-# use sudo so that user does not get sudo usage info on (the first) login
-RUN sudo echo "Running 'sudo' for Gitpod: success" && \
-    # create .bashrc.d folder and source it in the bashrc
-    mkdir -p /home/gitpod/.bashrc.d && \
-    (echo; echo "for i in \$(ls -A \$HOME/.bashrc.d/); do source \$HOME/.bashrc.d/\$i; done"; echo) >> /home/gitpod/.bashrc
 
-# configure git-lfs
-RUN sudo git lfs install --system
-
-# install depot_tools
+# Install Chromium's depot_tools.
 RUN git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git /home/gitpod/depot_tools
-RUN echo 'export PATH=/home/gitpod/depot_tools:$PATH' >> /home/gitpod/.bashrc
+ENV PATH $PATH:/home/gitpod/depot_tools
+RUN echo "\n# Add Chromium's depot_tools to the PATH." >> /home/gitpod/.bashrc \
+ && echo "export PATH=\"\$PATH:/home/gitpod/depot_tools\"" >> /home/gitpod/.bashrc
 
-COPY startup.sh /home/gitpod
-RUN chmod +x /home/gitpod/startup.sh && echo "bash /home/gitpod/startup.sh" >> /home/gitpod/.bashrc 
+# Enable bash completion for git cl.
+RUN echo "\n# The next line enables bash completion for git cl." >> /home/gitpod/.bashrc \
+ && echo "if [ -f \"/home/gitpod/depot_tools/git_cl_completion.sh\" ]; then" >> /home/gitpod/.bashrc \
+ && echo "  . \"/home/gitpod/depot_tools/git_cl_completion.sh\"" >> /home/gitpod/.bashrc \
+ && echo "fi" >> /home/gitpod/.bashrc
 
+# Set up git
+RUN git config --global user.name "/dev/null" \
+  && git config --global user.email "dev@null.com" 
+
+# Give back control.
+USER root
